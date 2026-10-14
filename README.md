@@ -15,7 +15,7 @@ and warnings.
 - [x] Team formed
 - [x] Product goal defined
 - [ ] Product goal confirmed with instructor
-- [ ] Backlog on issue board
+- [x] Backlog on issue board
 
 ## Links
 - Issue board: https://github.com/Katan21/study-planner/issues

@@ -17,6 +17,12 @@ and warnings.
 - [ ] Product goal confirmed with instructor
 - [x] Backlog on issue board
 
+## Tech Stack
+- Backend: Spring Boot (Java 17+), REST API
+- Storage: H2 (file-based)
+- Frontend: plain HTML + JavaScript (fetch)
+- CI: GitHub Actions (build + test)
+
 ## Links
 - Issue board: https://github.com/Katan21/study-planner/issues
-A
+

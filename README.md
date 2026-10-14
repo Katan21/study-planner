@@ -19,3 +19,4 @@ and warnings.
 
 ## Links
 - Issue board: https://github.com/Katan21/study-planner/issues
+A

@@ -26,3 +26,7 @@ and warnings.
 ## Links
 - Issue board: https://github.com/Katan21/study-planner/issues
 
+## How to Run
+1. `git clone https://github.com/Katan21/study-planner`
+2. `mvn spring-boot:run`
+3. Open http://localhost:8080

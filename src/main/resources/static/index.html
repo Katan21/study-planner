@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Planner</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.6rem; }
+    form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 2px; }
+    input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    button:focus-visible, input:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+    .error { color: #b91c1c; margin-top: 8px; min-height: 1.2em; }
+    .empty { color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Study Planner</h1>
+
+  <form id="exam-form">
+    <div>
+      <label for="subject">Subject</label>
+      <input id="subject" name="subject" type="text" required>
+    </div>
+    <div>
+      <label for="date">Date</label>
+      <input id="date" name="date" type="date" required>
+    </div>
+    <div>
+      <label for="time">Time</label>
+      <input id="time" name="time" type="time" required>
+    </div>
+    <div style="align-self: flex-end;">
+      <button type="submit">Add exam</button>
+    </div>
+  </form>
+  <p class="error" id="error" role="alert"></p>
+
+  <table>
+    <thead>
+      <tr><th>Subject</th><th>Date</th><th>Time</th><th></th></tr>
+    </thead>
+    <tbody id="exam-list"></tbody>
+  </table>
+  <p class="empty" id="empty">No exams yet.</p>
+
+  <script>
+    const list = document.getElementById('exam-list');
+    const empty = document.getElementById('empty');
+    const error = document.getElementById('error');
+
+    async function loadExams() {
+      const res = await fetch('/api/exams');
+      const exams = await res.json();
+      list.innerHTML = '';
+      empty.style.display = exams.length ? 'none' : 'block';
+      for (const e of exams) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e.subject}</td><td>${e.date}</td><td>${e.time}</td>`;
+        const del = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = 'Delete';
+        btn.onclick = () => deleteExam(e.id);
+        del.appendChild(btn);
+        tr.appendChild(del);
+        list.appendChild(tr);
+      }
+    }
+
+    async function deleteExam(id) {
+      await fetch('/api/exams/' + id, { method: 'DELETE' });
+      loadExams();
+    }
+
+    document.getElementById('exam-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      error.textContent = '';
+      const data = {
+        subject: document.getElementById('subject').value,
+        date: document.getElementById('date').value,
+        time: document.getElementById('time').value
+      };
+      const res = await fetch('/api/exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        error.textContent = body.error || 'Something went wrong';
+        return;
+      }
+      ev.target.reset();
+      loadExams();
+    });
+
+    loadExams();
+  </script>
+</body>
+</html>

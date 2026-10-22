@@ -10,6 +10,7 @@ and warnings.
 ## Team
 - Arda Ulaş Kılıçkaya
 - Ali Abdullayev
+- Baiastan Sadyrov
 
 ## Status
 - [x] Team formed

@@ -8,9 +8,9 @@ the system generates an automatic day-by-day study plan with countdown
 and warnings.
 
 ## Team
+- Baiastan Sadyrov
 - Arda Ulaş Kılıçkaya
 - Ali Abdullayev
-- Baiastan Sadyrov
 
 ## Status
 - [x] Team formed

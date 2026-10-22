@@ -14,7 +14,7 @@ and warnings.
 ## Status
 - [x] Team formed
 - [x] Product goal defined
-- [ ] Product goal confirmed with instructor
+- [x] Product goal confirmed with instructor
 - [x] Backlog on issue board
 
 ## Tech Stack

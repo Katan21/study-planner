@@ -11,6 +11,7 @@ and warnings.
 - Baiastan Sadyrov
 - Arda Ulaş Kılıçkaya
 - Ali Abdullayev
+- Bohdan Shemet
 
 ## Status
 - [x] Team formed

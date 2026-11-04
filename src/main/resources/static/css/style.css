@@ -155,3 +155,5 @@ tbody tr:hover {
         width: 100%;
     }
 }
+.countdown { font-weight: 600; margin: 8px 0 16px; }
+.countdown.warning { color: #b91c1c; }

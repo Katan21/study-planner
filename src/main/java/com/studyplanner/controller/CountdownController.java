@@ -26,3 +26,4 @@ public class CountdownController {
                 "warning", days.map(d -> d <= 2).orElse(false)
         );
     }
+}

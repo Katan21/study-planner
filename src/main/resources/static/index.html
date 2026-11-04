@@ -21,34 +21,19 @@
   </style>
 </head>
 <body>
-  <h1>Study Planner</h1>
+    <h1>Study Planner</h1>
+    <div id="countdown" class="countdown" role="status"></div>
 
-  <form id="exam-form">
-    <div>
-      <label for="subject">Subject</label>
-      <input id="subject" name="subject" type="text" required>
-    </div>
-    <div>
-      <label for="date">Date</label>
-      <input id="date" name="date" type="date" required>
-    </div>
-    <div>
-      <label for="time">Time</label>
-      <input id="time" name="time" type="time" required>
-    </div>
-    <div style="align-self: flex-end;">
-      <button type="submit">Add exam</button>
-    </div>
-  </form>
-  <p class="error" id="error" role="alert"></p>
+    <form id="exam-form">
+        <div>
+            <label for="subject">Subject</label>
+            <input id="subject" name="subject" type="text" required>
+        </div>
 
-  <table>
-    <thead>
-      <tr><th>Subject</th><th>Date</th><th>Time</th><th></th></tr>
-    </thead>
-    <tbody id="exam-list"></tbody>
-  </table>
-  <p class="empty" id="empty">No exams yet.</p>
+        <div>
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required>
+        </div>
 
   <!-- Секция Study Plan -->
   <section id="study-plan-section" tabindex="0" aria-label="Study Plan">
@@ -99,32 +84,19 @@
       loadStudyPlan();
     }
 
-    async function deleteExam(id) {
-      await fetch('/api/exams/' + id, { method: 'DELETE' });
-      loadExams();
-    }
+    <p class="error" id="error" role="alert"></p>
 
-    document.getElementById('exam-form').addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      error.textContent = '';
-      const data = {
-        subject: document.getElementById('subject').value,
-        date: document.getElementById('date').value,
-        time: document.getElementById('time').value
-      };
-      const res = await fetch('/api/exams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        error.textContent = body.error || 'Something went wrong';
-        return;
-      }
-      ev.target.reset();
-      loadExams();
-    });
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="exam-list"></tbody>
+    </table>
 
     function loadStudyPlan() {
         const today = new Date().toISOString().split('T')[0];

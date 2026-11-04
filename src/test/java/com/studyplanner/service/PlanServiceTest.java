@@ -2,7 +2,6 @@ package com.studyplanner.service;
 
 import com.studyplanner.dto.StudyBlockDto;
 import com.studyplanner.model.Exam;
-import com.studyplanner.repository.ExamRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,14 +20,14 @@ import static org.mockito.Mockito.when;
 class PlanServiceTest {
 
     @Mock
-    private ExamRepository examRepository;
+    private ExamService examService;
 
     @InjectMocks
     private PlanService planService;
 
     @Test
     void testEmptyPlan_NoExams() {
-        when(examRepository.findAll()).thenReturn(Collections.emptyList());
+        when(examService.getAll()).thenReturn(Collections.emptyList());
 
         List<StudyBlockDto> plan = planService.generatePlan(LocalDate.of(2026, 11, 1));
         assertTrue(plan.isEmpty());
@@ -38,7 +37,7 @@ class PlanServiceTest {
     void testSingleExam_GeneratesBlocksAndFinalRevision() {
         LocalDate today = LocalDate.of(2026, 11, 1);
         Exam exam = new Exam("Math", LocalDate.of(2026, 11, 3), LocalTime.of(10, 0));
-        when(examRepository.findAll()).thenReturn(List.of(exam));
+        when(examService.getAll()).thenReturn(List.of(exam));
 
         List<StudyBlockDto> plan = planService.generatePlan(today);
 
@@ -54,13 +53,11 @@ class PlanServiceTest {
         LocalDate today = LocalDate.of(2026, 11, 1);
         Exam exam1 = new Exam("Math", LocalDate.of(2026, 11, 2), LocalTime.of(10, 0));
         Exam exam2 = new Exam("Java", LocalDate.of(2026, 11, 3), LocalTime.of(12, 0));
-        when(examRepository.findAll()).thenReturn(List.of(exam1, exam2));
+        when(examService.getAll()).thenReturn(List.of(exam1, exam2));
 
         List<StudyBlockDto> plan = planService.generatePlan(today);
 
         assertFalse(plan.isEmpty());
-        // Проверяем, что в день первого экзамена ставится final revision для первого,
-        // а ближайший экзамен имеет приоритет
         assertEquals("Math", plan.get(0).getSubject());
     }
 }

@@ -155,5 +155,22 @@ tbody tr:hover {
         width: 100%;
     }
 }
+
+/* Study Plan Section Styles */
+#study-plan-section {
+  margin-top: 40px;
+}
+
+#empty-plan-message {
+  display: none;
+}
+
+#plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  display: none;
+}
+
 .countdown { font-weight: 600; margin: 8px 0 16px; }
 .countdown.warning { color: #b91c1c; }

@@ -3,6 +3,48 @@ const empty = document.getElementById('empty');
 const error = document.getElementById('error');
 
 async function loadExams() {
+	
+	// Fetch and render the study plan for the current date
+	function loadStudyPlan() {
+	    const today = new Date().toISOString().split('T')[0];
+
+	    fetch('/api/plan?startDate=' + today)
+	        .then(response => {
+	            if (!response.ok) {
+	                throw new Error('Failed to fetch plan');
+	            }
+	            return response.json();
+	        })
+	        .then(data => {
+	            const emptyMessage = document.getElementById('empty-plan-message');
+	            const planTable = document.getElementById('plan-table');
+	            const tableBody = document.getElementById('plan-table-body');
+
+	            tableBody.innerHTML = '';
+
+	            if (!data || data.length === 0) {
+	                emptyMessage.style.display = 'block';
+	                planTable.style.display = 'none';
+	                return;
+	            }
+
+	            emptyMessage.style.display = 'none';
+	            planTable.style.display = 'table';
+
+	            data.forEach(item => {
+	                const row = document.createElement('tr');
+	                row.setAttribute('tabindex', '0');
+	                row.innerHTML = `
+	                    <td>${item.date}</td>
+	                    <td>${item.subject}</td>
+	                    <td><strong>${item.activity}</strong></td>
+	                `;
+	                tableBody.appendChild(row);
+	            });
+	        })
+	        .catch(error => console.error('Error loading study plan:', error));
+	}
+	
     const res = await fetch('/api/exams');
     const exams = await res.json();
 

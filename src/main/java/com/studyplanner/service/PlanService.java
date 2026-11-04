@@ -10,6 +10,9 @@ import java.util.*;
 @Service
 public class PlanService {
 
+    private static final String ACTIVITY_STUDY = "study";
+    private static final String ACTIVITY_FINAL_REVISION = "final revision";
+
     private final ExamService examService;
 
     public PlanService(ExamService examService) {
@@ -17,23 +20,21 @@ public class PlanService {
     }
 
     public List<StudyBlockDto> generatePlan(LocalDate startDate) {
-        List<Exam> exams = examService.getAll();
-        if (exams.isEmpty()) {
+        List<Exam> upcomingExams = examService.getAll().stream()
+                .filter(exam -> !exam.getDate().isBefore(startDate))
+                .sorted(Comparator.comparing(Exam::getDate).thenComparing(Exam::getTime))
+                .toList();
+
+        if (upcomingExams.isEmpty()) {
             return Collections.emptyList();
         }
 
-        exams.sort(Comparator.comparing(Exam::getDate));
+        Exam priorityExam = upcomingExams.get(0);
         List<StudyBlockDto> plan = new ArrayList<>();
-        Exam nearestExam = exams.get(0);
 
-        LocalDate current = startDate;
-        while (!current.isAfter(nearestExam.getDate())) {
-            if (current.equals(nearestExam.getDate())) {
-                plan.add(new StudyBlockDto(current, nearestExam.getSubject(), "final revision"));
-            } else {
-                plan.add(new StudyBlockDto(current, nearestExam.getSubject(), "study"));
-            }
-            current = current.plusDays(1);
+        for (LocalDate date = startDate; !date.isAfter(priorityExam.getDate()); date = date.plusDays(1)) {
+            String activity = date.equals(priorityExam.getDate()) ? ACTIVITY_FINAL_REVISION : ACTIVITY_STUDY;
+            plan.add(new StudyBlockDto(date, priorityExam.getSubject(), activity));
         }
 
         return plan;

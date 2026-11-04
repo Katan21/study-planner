@@ -57,3 +57,17 @@ document.getElementById('exam-form').addEventListener('submit', async (ev) => {
 });
 
 loadExams();
+async function loadCountdown() {
+  const el = document.getElementById('countdown');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/countdown');
+    const data = await res.json();
+    if (data.daysLeft < 0) { el.textContent = ''; return; }
+    el.textContent = data.warning
+      ? '⚠ Exam in ' + data.daysLeft + ' day(s) — start now!'
+      : 'Nearest exam in ' + data.daysLeft + ' day(s)';
+    el.classList.toggle('warning', !!data.warning);
+  } catch (e) { el.textContent = ''; }
+}
+loadCountdown();

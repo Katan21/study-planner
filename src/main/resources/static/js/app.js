@@ -3,7 +3,7 @@ const empty = document.getElementById('empty');
 const error = document.getElementById('error');
 
 async function loadExams() {
-	
+	// Fetch and render the list of exams
 	// Fetch and render the study plan for the current date
 	function loadStudyPlan() {
 	    const today = new Date().toISOString().split('T')[0];

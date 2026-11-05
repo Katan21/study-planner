@@ -18,7 +18,7 @@ public class PlanController {
     public PlanController(PlanService planService) {
         this.planService = planService;
     }
-
+        //Ali
     @GetMapping("/api/plan")
     public List<StudyBlockDto> getPlan(
             @RequestParam("startDate") 

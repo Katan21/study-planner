@@ -2,49 +2,51 @@ const list = document.getElementById('exam-list');
 const empty = document.getElementById('empty');
 const error = document.getElementById('error');
 
+// Fetch and render the study plan starting from today's date
+function loadStudyPlan() {
+    const today = new Date().toISOString().split('T')[0];
+
+    fetch('/api/plan?startDate=' + today)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch study plan');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const emptyMessage = document.getElementById('empty-plan-message');
+            const planTable = document.getElementById('plan-table');
+            const tableBody = document.getElementById('plan-table-body');
+
+            if (!emptyMessage || !planTable || !tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                emptyMessage.style.display = 'block';
+                planTable.style.display = 'none';
+                return;
+            }
+
+            emptyMessage.style.display = 'none';
+            planTable.style.display = 'table';
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.setAttribute('tabindex', '0');
+                row.innerHTML = `
+                    <td>${item.date}</td>
+                    <td>${item.subject}</td>
+                    <td><strong>${item.activity || item.task}</strong></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        })
+        .catch(err => console.error('Error loading study plan:', err));
+}
+
+// Fetch and render the list of exams
 async function loadExams() {
-	// Fetch and render the list of exams
-	// Fetch and render the study plan for the current date
-	function loadStudyPlan() {
-	    const today = new Date().toISOString().split('T')[0];
-
-	    fetch('/api/plan?startDate=' + today)
-	        .then(response => {
-	            if (!response.ok) {
-	                throw new Error('Failed to fetch plan');
-	            }
-	            return response.json();
-	        })
-	        .then(data => {
-	            const emptyMessage = document.getElementById('empty-plan-message');
-	            const planTable = document.getElementById('plan-table');
-	            const tableBody = document.getElementById('plan-table-body');
-
-	            tableBody.innerHTML = '';
-
-	            if (!data || data.length === 0) {
-	                emptyMessage.style.display = 'block';
-	                planTable.style.display = 'none';
-	                return;
-	            }
-
-	            emptyMessage.style.display = 'none';
-	            planTable.style.display = 'table';
-
-	            data.forEach(item => {
-	                const row = document.createElement('tr');
-	                row.setAttribute('tabindex', '0');
-	                row.innerHTML = `
-	                    <td>${item.date}</td>
-	                    <td>${item.subject}</td>
-	                    <td><strong>${item.activity}</strong></td>
-	                `;
-	                tableBody.appendChild(row);
-	            });
-	        })
-	        .catch(error => console.error('Error loading study plan:', error));
-	}
-	
     const res = await fetch('/api/exams');
     const exams = await res.json();
 
@@ -65,11 +67,15 @@ async function loadExams() {
         tr.appendChild(del);
         list.appendChild(tr);
     }
+
+    // Refresh study plan whenever exams are loaded or updated
+    loadStudyPlan();
 }
 
 async function deleteExam(id) {
     await fetch('/api/exams/' + id, { method: 'DELETE' });
     loadExams();
+    loadCountdown();
 }
 
 document.getElementById('exam-form').addEventListener('submit', async (ev) => {
@@ -96,20 +102,22 @@ document.getElementById('exam-form').addEventListener('submit', async (ev) => {
 
     ev.target.reset();
     loadExams();
+    loadCountdown();
 });
 
-loadExams();
 async function loadCountdown() {
-  const el = document.getElementById('countdown');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/countdown');
-    const data = await res.json();
-    if (data.daysLeft < 0) { el.textContent = ''; return; }
-    el.textContent = data.warning
-      ? '⚠ Exam in ' + data.daysLeft + ' day(s) — start now!'
-      : 'Nearest exam in ' + data.daysLeft + ' day(s)';
-    el.classList.toggle('warning', !!data.warning);
-  } catch (e) { el.textContent = ''; }
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    try {
+        const res = await fetch('/api/countdown');
+        const data = await res.json();
+        if (data.daysLeft < 0) { el.textContent = ''; return; }
+        el.textContent = data.warning
+            ? '⚠ Exam in ' + data.daysLeft + ' day(s) — start now!'
+            : 'Nearest exam in ' + data.daysLeft + ' day(s)';
+        el.classList.toggle('warning', !!data.warning);
+    } catch (e) { el.textContent = ''; }
 }
+
+loadExams();
 loadCountdown();

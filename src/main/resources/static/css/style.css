@@ -174,3 +174,22 @@ tbody tr:hover {
 
 .countdown { font-weight: 600; margin: 8px 0 16px; }
 .countdown.warning { color: #b91c1c; }
+/* Exam time and postponed status */
+.exam-time {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.postponed-label {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border: 1px solid #fcd34d;
+    border-radius: 4px;
+    background-color: #fffbeb;
+    color: #92400e;
+    font-size: 0.75rem;
+    font-weight: 600;
+}

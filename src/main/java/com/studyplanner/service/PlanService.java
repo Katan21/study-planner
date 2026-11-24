@@ -1,3 +1,4 @@
+
 package com.studyplanner.service;
 
 import com.studyplanner.dto.StudyBlockDto;
@@ -43,16 +44,32 @@ public class PlanService {
         List<StudyBlockDto> plan = new ArrayList<>();
 
         for (LocalDate date = startDate; !date.isAfter(priorityExam.getDate()); date = date.plusDays(1)) {
-            String activity = date.equals(priorityExam.getDate()) ? ACTIVITY_FINAL_REVISION : ACTIVITY_STUDY;
+            String activity = date.equals(priorityExam.getDate())
+                    ? ACTIVITY_FINAL_REVISION
+                    : ACTIVITY_STUDY;
+
             String taskKey = activity + " - " + date;
 
             if (studyBlockRepository == null) {
-                plan.add(new StudyBlockDto(null, date, priorityExam.getSubject(), activity, "TODO", priorityExam.getDate()));
+                plan.add(new StudyBlockDto(
+                        null,
+                        date,
+                        priorityExam.getSubject(),
+                        activity,
+                        "TODO",
+                        priorityExam.getDate(),
+                        priorityExam.getTime(),
+                        null
+                ));
                 continue;
             }
 
             StudyBlock existing = studyBlockRepository
-                    .findBySubjectAndExamDateAndTask(priorityExam.getSubject(), priorityExam.getDate(), taskKey)
+                    .findBySubjectAndExamDateAndTask(
+                            priorityExam.getSubject(),
+                            priorityExam.getDate(),
+                            taskKey
+                    )
                     .orElse(null);
 
             if (existing != null) {
@@ -62,7 +79,9 @@ public class PlanService {
                         existing.getSubject(),
                         activity,
                         existing.getStatus(),
-                        existing.getExamDate()
+                        existing.getExamDate(),
+                        priorityExam.getTime(),
+                        existing.getPostponedTo()
                 ));
             } else {
                 StudyBlock created = new StudyBlock();
@@ -81,7 +100,9 @@ public class PlanService {
                         blockToUse.getSubject(),
                         activity,
                         blockToUse.getStatus(),
-                        blockToUse.getExamDate()
+                        blockToUse.getExamDate(),
+                        priorityExam.getTime(),
+                        blockToUse.getPostponedTo()
                 ));
             }
         }

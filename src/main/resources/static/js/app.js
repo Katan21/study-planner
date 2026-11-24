@@ -168,7 +168,24 @@ function renderStudyPlan(blocks) {
         dateCell.textContent = item.date;
 
         const subjectCell = document.createElement('td');
-        subjectCell.textContent = item.subject;
+
+        const subjectName = document.createElement('div');
+        subjectName.textContent = item.subject;
+        subjectCell.appendChild(subjectName);
+
+        if (item.examTime) {
+            const examTime = document.createElement('small');
+            examTime.className = 'exam-time';
+            examTime.textContent = `Exam: ${item.examTime}`;
+            subjectCell.appendChild(examTime);
+        }
+
+        if (item.postponedTo) {
+            const postponedLabel = document.createElement('span');
+            postponedLabel.className = 'postponed-label';
+            postponedLabel.textContent = 'Postponed';
+            subjectCell.appendChild(postponedLabel);
+        }
 
         const taskCell = document.createElement('td');
         const strong = document.createElement('strong');

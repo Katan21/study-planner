@@ -2,6 +2,9 @@ package com.studyplanner.service;
 
 import com.studyplanner.dto.StudyBlockDto;
 import com.studyplanner.model.Exam;
+import com.studyplanner.model.StudyBlock;
+import com.studyplanner.repository.StudyBlockRepository;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,8 +15,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,6 +34,38 @@ class PlanServiceTest {
     private PlanService planService;
 
     @Test
+    void generatePlan_doneStaysDone() {
+        ExamService examService = mock(ExamService.class);
+        StudyBlockRepository blockRepo = mock(StudyBlockRepository.class);
+        PlanService planService = new PlanService(examService, blockRepo);
+
+        LocalDate today = LocalDate.of(2026, 11, 24);
+        Exam exam = new Exam();
+        exam.setSubject("Math");
+        exam.setDate(today);
+        exam.setTime(LocalTime.of(10, 0));
+
+        when(examService.getAll()).thenReturn(List.of(exam));
+
+        StudyBlock completedBlock = new StudyBlock();
+        completedBlock.setId(42L);
+        completedBlock.setDate(today);
+        completedBlock.setSubject("Math");
+        completedBlock.setTask("final revision - " + today);
+        completedBlock.setStatus("DONE");
+        completedBlock.setExamDate(today);
+
+        when(blockRepo.findBySubjectAndExamDateAndTask("Math", today, "final revision - " + today))
+                .thenReturn(Optional.of(completedBlock));
+
+        List<StudyBlockDto> result = planService.generatePlan(today);
+
+        assertEquals(1, result.size());
+        assertEquals(42L, result.get(0).getId());
+        assertEquals("DONE", result.get(0).getStatus());
+        verify(blockRepo, never()).save(any());
+    }
+    
     void testEmptyPlan_NoExams() {
         when(examService.getAll()).thenReturn(Collections.emptyList());
 

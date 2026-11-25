@@ -2,6 +2,15 @@ const list = document.getElementById('exam-list');
 const empty = document.getElementById('empty');
 const error = document.getElementById('error');
 const planError = document.getElementById('plan-error');
+const examForm = document.getElementById('exam-form');
+const subjectInput = document.getElementById('subject');
+const dateInput = document.getElementById('date');
+const timeInput = document.getElementById('time');
+const submitBtn = document.getElementById('submit-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+// Tracks the ID of the exam currently being edited (null when creating a new exam)
+let editingExamId = null;
 
 // Local state for study blocks (supports both live API and mock fallback)
 let currentBlocks = [];
@@ -29,6 +38,42 @@ function showPlanError(message) {
     if (planError) {
         planError.textContent = message || '';
     }
+}
+
+// Load an exam into the form and switch submit mode to PUT
+function startEditExam(exam) {
+    error.textContent = '';
+    editingExamId = exam.id;
+    subjectInput.value = exam.subject;
+    dateInput.value = exam.date;
+    timeInput.value = exam.time;
+
+    if (submitBtn) {
+        submitBtn.textContent = 'Save changes';
+    }
+    if (cancelEditBtn) {
+        cancelEditBtn.style.display = 'inline-block';
+    }
+    subjectInput.focus();
+}
+
+// Reset form back to create (POST) mode
+function resetFormState() {
+    editingExamId = null;
+    examForm.reset();
+    if (submitBtn) {
+        submitBtn.textContent = 'Add exam';
+    }
+    if (cancelEditBtn) {
+        cancelEditBtn.style.display = 'none';
+    }
+}
+
+if (cancelEditBtn) {
+    cancelEditBtn.addEventListener('click', () => {
+        error.textContent = '';
+        resetFormState();
+    });
 }
 
 // Mark a study block as DONE via POST /api/blocks/{id}/done
@@ -203,14 +248,14 @@ function renderStudyPlan(blocks) {
         pickerWrapper.style.display = 'none';
         pickerWrapper.style.marginLeft = '8px';
 
-        const dateInput = document.createElement('input');
-        dateInput.type = 'date';
-        dateInput.min = today;
+        const blockDateInput = document.createElement('input');
+        blockDateInput.type = 'date';
+        blockDateInput.min = today;
         if (item.examDate) {
-            dateInput.max = item.examDate;
+            blockDateInput.max = item.examDate;
         }
-        dateInput.value = item.date >= today ? item.date : today;
-        dateInput.setAttribute('aria-label', `New date for ${item.subject}`);
+        blockDateInput.value = item.date >= today ? item.date : today;
+        blockDateInput.setAttribute('aria-label', `New date for ${item.subject}`);
 
         const confirmBtn = document.createElement('button');
         confirmBtn.type = 'button';
@@ -221,22 +266,22 @@ function renderStudyPlan(blocks) {
             const isHidden = pickerWrapper.style.display === 'none';
             pickerWrapper.style.display = isHidden ? 'inline-block' : 'none';
             if (isHidden) {
-                dateInput.focus();
+                blockDateInput.focus();
             }
         });
 
         confirmBtn.addEventListener('click', () => {
-            postponeBlock(item.id, dateInput.value);
+            postponeBlock(item.id, blockDateInput.value);
         });
 
-        dateInput.addEventListener('keydown', (e) => {
+        blockDateInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                postponeBlock(item.id, dateInput.value);
+                postponeBlock(item.id, blockDateInput.value);
             }
         });
 
-        pickerWrapper.appendChild(dateInput);
+        pickerWrapper.appendChild(blockDateInput);
         pickerWrapper.appendChild(confirmBtn);
         actionsCell.appendChild(postponeBtn);
         actionsCell.appendChild(pickerWrapper);
@@ -283,7 +328,7 @@ async function loadStudyPlan() {
     }
 }
 
-// Fetch and render the list of exams
+// Fetch and render the list of exams with Edit and Delete actions
 async function loadExams() {
     const res = await fetch('/api/exams');
     const exams = await res.json();
@@ -295,14 +340,24 @@ async function loadExams() {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${e.subject}</td><td>${e.date}</td><td>${e.time}</td>`;
 
-        const del = document.createElement('td');
-        const btn = document.createElement('button');
+        const actionsCell = document.createElement('td');
 
-        btn.textContent = 'Delete';
-        btn.onclick = () => deleteExam(e.id);
+        // Edit button loads exam data into the form
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.textContent = 'Edit';
+        editBtn.style.marginRight = '6px';
+        editBtn.onclick = () => startEditExam(e);
 
-        del.appendChild(btn);
-        tr.appendChild(del);
+        // Delete button removes the exam
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => deleteExam(e.id);
+
+        actionsCell.appendChild(editBtn);
+        actionsCell.appendChild(delBtn);
+        tr.appendChild(actionsCell);
         list.appendChild(tr);
     }
 
@@ -310,23 +365,31 @@ async function loadExams() {
 }
 
 async function deleteExam(id) {
+    if (editingExamId === id) {
+        resetFormState();
+    }
     await fetch('/api/exams/' + id, { method: 'DELETE' });
     loadExams();
     loadCountdown();
 }
 
-document.getElementById('exam-form').addEventListener('submit', async (ev) => {
+// Handle form submission: PUT when editing an existing exam, POST when adding a new one
+examForm.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     error.textContent = '';
 
     const data = {
-        subject: document.getElementById('subject').value,
-        date: document.getElementById('date').value,
-        time: document.getElementById('time').value
+        subject: subjectInput.value,
+        date: dateInput.value,
+        time: timeInput.value
     };
 
-    const res = await fetch('/api/exams', {
-        method: 'POST',
+    const isEditing = editingExamId !== null;
+    const url = isEditing ? `/api/exams/${editingExamId}` : '/api/exams';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
@@ -337,7 +400,7 @@ document.getElementById('exam-form').addEventListener('submit', async (ev) => {
         return;
     }
 
-    ev.target.reset();
+    resetFormState();
     loadExams();
     loadCountdown();
 });

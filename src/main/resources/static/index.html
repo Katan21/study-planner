@@ -14,7 +14,7 @@
     <h1>Study Planner</h1>
     <div id="countdown" class="countdown" role="status"></div>
 
-    <form id="exam-form">
+    <form id="exam-form"> 
         <div>
             <label for="subject">Subject</label>
             <input id="subject" name="subject" type="text" required>
@@ -30,9 +30,10 @@
             <input id="time" name="time" type="time" required>
         </div>
 
-        <div style="align-self: flex-end;">
-            <button type="submit">Add exam</button>
-        </div>
+		<div style="align-self: flex-end;">
+		            <button type="submit" id="submit-btn">Add exam</button>
+		            <button type="button" id="cancel-edit-btn" style="display:none;">Cancel</button>
+		        </div>
     </form>
 
     <p class="error" id="error" role="alert"></p>

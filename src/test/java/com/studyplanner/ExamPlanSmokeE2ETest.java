@@ -1,6 +1,7 @@
 package com.studyplanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.studyplanner.dto.StudyBlockDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +34,9 @@ class ExamPlanSmokeE2ETest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    // Built manually: Boot 4 does not expose an ObjectMapper bean in the mock
+    // servlet test context by default; JSR-310 module needed for LocalDate fields.
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
     void createExam_plan_markDone_endToEnd() throws Exception {

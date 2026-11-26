@@ -1,11 +1,14 @@
 package com.studyplanner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studyplanner.dto.StudyBlockDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -13,21 +16,28 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * End-to-end smoke test (Sprint 3, Lab 11 — critical user journey through the
- * deployed HTTP interface: create exam -> plan -> mark done -> plan shows done).
+ * HTTP interface: create exam -> plan -> mark done -> plan shows done).
+ * Uses MockMvc (spring-test) so no extra web-test dependency is needed.
  * Owner: Bayastan.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
+@AutoConfigureMockMvc
 class ExamPlanSmokeE2ETest {
 
     @Autowired
-    private TestRestTemplate rest;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void createExam_plan_markDone_endToEnd() {
+    void createExam_plan_markDone_endToEnd() throws Exception {
         LocalDate today = LocalDate.now();
         String subject = "E2E Physics " + System.nanoTime();
 
@@ -36,35 +46,40 @@ class ExamPlanSmokeE2ETest {
         exam.put("date", today.plusDays(2).toString());
         exam.put("time", "09:00");
 
-        ResponseEntity<String> created = rest.postForEntity("/api/exams", exam, String.class);
-        assertTrue(created.getStatusCode().is2xxSuccessful(), "exam creation should succeed");
+        mockMvc.perform(post("/api/exams")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(exam)))
+                .andExpect(status().is2xxSuccessful());
 
-        ResponseEntity<StudyBlockDto[]> plan =
-                rest.getForEntity("/api/plan?startDate=" + today, StudyBlockDto[].class);
-        assertTrue(plan.getStatusCode().is2xxSuccessful(), "plan endpoint should respond");
-        StudyBlockDto mine = findBlock(plan.getBody(), subject);
+        MvcResult planResult = mockMvc.perform(get("/api/plan").param("startDate", today.toString()))
+                .andExpect(status().isOk())
+                .andReturn();
+        StudyBlockDto[] plan = objectMapper.readValue(
+                planResult.getResponse().getContentAsString(), StudyBlockDto[].class);
+        StudyBlockDto mine = findBlock(plan, subject);
         assertNotNull(mine, "plan should contain a block for the new exam");
+        assertNotNull(mine.getId(), "plan row must have an id");
 
-        ResponseEntity<String> done =
-                rest.postForEntity("/api/blocks/" + mine.getId() + "/done", null, String.class);
-        assertTrue(done.getStatusCode().is2xxSuccessful(), "marking done through the API should succeed");
+        mockMvc.perform(post("/api/blocks/" + mine.getId() + "/done"))
+                .andExpect(status().is2xxSuccessful());
 
-        StudyBlockDto afterDone = findBlock(
-                rest.getForEntity("/api/plan?startDate=" + today, StudyBlockDto[].class).getBody(), subject);
-        assertEquals("DONE", afterDone.getStatus(), "plan must show the block as DONE");
+        MvcResult afterDone = mockMvc.perform(get("/api/plan").param("startDate", today.toString()))
+                .andExpect(status().isOk())
+                .andReturn();
+        StudyBlockDto doneBlock = findBlock(
+                objectMapper.readValue(afterDone.getResponse().getContentAsString(), StudyBlockDto[].class),
+                subject);
+        assertEquals("DONE", doneBlock.getStatus(), "plan must show the block as DONE");
 
         // TODO(Bayastan): add postpone happy path through the API:
         //   POST /api/blocks/{id}/postpone?newDate=<date before exam>,
         //   then assert the plan row shows the new date and postponedTo.
-        // TODO(Bayastan): add postpone past the exam date -> expect 4xx
+        // TODO(Bayastan): add postpone past the exam date -> expect 400
         //   (GlobalExceptionHandler maps validation errors to 400),
         //   and assert the plan row keeps its original date.
     }
 
     private StudyBlockDto findBlock(StudyBlockDto[] blocks, String subject) {
-        if (blocks == null) {
-            return null;
-        }
         for (StudyBlockDto b : blocks) {
             if (subject.equals(b.getSubject())) {
                 return b;

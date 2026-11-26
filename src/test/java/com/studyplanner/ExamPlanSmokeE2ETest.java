@@ -1,15 +1,14 @@
 package com.studyplanner;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.studyplanner.dto.StudyBlockDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -17,6 +16,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * End-to-end smoke test (Sprint 3, Lab 11 — critical user journey through the
  * HTTP interface: create exam -> plan -> mark done -> plan shows done).
- * Uses MockMvc (spring-test) so no extra web-test dependency is needed.
+ * Uses MockMvc + JsonNode so no extra test dependencies are needed.
  * Owner: Bayastan.
  */
 @SpringBootTest
@@ -34,9 +34,9 @@ class ExamPlanSmokeE2ETest {
     @Autowired
     private MockMvc mockMvc;
 
-    // Built manually: Boot 4 does not expose an ObjectMapper bean in the mock
-    // servlet test context by default; JSR-310 module needed for LocalDate fields.
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    // Built manually (Boot 4 exposes no ObjectMapper bean in the mock servlet
+    // context by default); we only read string/number fields, no date binding.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void createExam_plan_markDone_endToEnd() throws Exception {
@@ -53,25 +53,15 @@ class ExamPlanSmokeE2ETest {
                         .content(objectMapper.writeValueAsString(exam)))
                 .andExpect(status().is2xxSuccessful());
 
-        MvcResult planResult = mockMvc.perform(get("/api/plan").param("startDate", today.toString()))
-                .andExpect(status().isOk())
-                .andReturn();
-        StudyBlockDto[] plan = objectMapper.readValue(
-                planResult.getResponse().getContentAsString(), StudyBlockDto[].class);
-        StudyBlockDto mine = findBlock(plan, subject);
+        JsonNode mine = findBlock(getPlan(today), subject);
         assertNotNull(mine, "plan should contain a block for the new exam");
-        assertNotNull(mine.getId(), "plan row must have an id");
+        assertTrue(mine.get("id").canConvertToLong(), "plan row must have an id");
 
-        mockMvc.perform(post("/api/blocks/" + mine.getId() + "/done"))
+        mockMvc.perform(post("/api/blocks/" + mine.get("id").asLong() + "/done"))
                 .andExpect(status().is2xxSuccessful());
 
-        MvcResult afterDone = mockMvc.perform(get("/api/plan").param("startDate", today.toString()))
-                .andExpect(status().isOk())
-                .andReturn();
-        StudyBlockDto doneBlock = findBlock(
-                objectMapper.readValue(afterDone.getResponse().getContentAsString(), StudyBlockDto[].class),
-                subject);
-        assertEquals("DONE", doneBlock.getStatus(), "plan must show the block as DONE");
+        JsonNode doneBlock = findBlock(getPlan(today), subject);
+        assertEquals("DONE", doneBlock.get("status").asText(), "plan must show the block as DONE");
 
         // TODO(Bayastan): add postpone happy path through the API:
         //   POST /api/blocks/{id}/postpone?newDate=<date before exam>,
@@ -81,9 +71,16 @@ class ExamPlanSmokeE2ETest {
         //   and assert the plan row keeps its original date.
     }
 
-    private StudyBlockDto findBlock(StudyBlockDto[] blocks, String subject) {
-        for (StudyBlockDto b : blocks) {
-            if (subject.equals(b.getSubject())) {
+    private JsonNode getPlan(LocalDate startDate) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/plan").param("startDate", startDate.toString()))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private JsonNode findBlock(JsonNode blocks, String subject) {
+        for (JsonNode b : blocks) {
+            if (subject.equals(b.path("subject").asText())) {
                 return b;
             }
         }
